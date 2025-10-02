@@ -42,7 +42,7 @@ export const Login = () => {
                 }}
             >
                 <Typography variant="h5">
-                    ログイン画面
+                    ログイン
                 </Typography>
                 <TextField
                     margin="normal"
@@ -74,7 +74,7 @@ export const Login = () => {
                 >
                     ログイン
                 </Button>
-                <Link to="/register">新規登録はこちら</Link>
+                <Link to="/register">新規登録はこちらから</Link>
             </Box>
         </Container>
     );
