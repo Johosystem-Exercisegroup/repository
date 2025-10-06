@@ -42,7 +42,7 @@ export const Login = () => {
                 }}
             >
                 <Typography variant="h5">
-                    ログイン画面
+                    ログイン
                 </Typography>
                 <TextField
                     margin="normal"
