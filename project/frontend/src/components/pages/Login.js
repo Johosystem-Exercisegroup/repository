@@ -74,7 +74,7 @@ export const Login = () => {
                 >
                     ログイン
                 </Button>
-                <Link to="/register">新規登録はこちらから</Link>
+                <Link to="/register">新規登録はこちら</Link>
             </Box>
         </Container>
     );
