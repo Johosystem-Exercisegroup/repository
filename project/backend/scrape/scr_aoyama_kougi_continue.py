@@ -1,6 +1,4 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -9,27 +7,58 @@ from bs4 import BeautifulSoup
 import time
 import sys
 import os
+import pymysql
+from dotenv import load_dotenv
 
+# ローカル環境用のデータベース接続設定
+load_dotenv()
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from db_config import create_db_connection
+dbConfig = {
+    "host": "localhost",
+    "port": 3307,
+    "user": "appuser",
+    "password": "apppassword",
+    "database": "tokuteikadai",
+    "charset": "utf8"
+}
 
+def create_db_connection():
+    """MySQLに直接接続するユーティリティ関数"""
+    connection = pymysql.connect(
+        host=dbConfig["host"],
+        port=dbConfig["port"],
+        user=dbConfig["user"],
+        password=dbConfig["password"],
+        database=dbConfig["database"],
+        charset=dbConfig["charset"],
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    return connection
 
 # セットアップ
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # ヘッドレスモードで実行
 driver = webdriver.Chrome(options=options)
 
+# 現在のデータ件数を確認
+connection = create_db_connection()
+with connection.cursor() as cursor:
+    cursor.execute("SELECT COUNT(*) as count FROM aoyama_kougi")
+    current_count = cursor.fetchone()['count']
+    print(f"現在のデータ件数: {current_count}件")
+    
+    # 1ページ20件として、何ページ目から開始すべきか計算
+    start_page = (current_count // 20) + 1
+    print(f"{start_page}ページ目から開始します")
+connection.close()
 
-# 青山学院大学のシラバス検索ページにおいて、全講義が選択された状態（キャンパスを全て指定するなど）のURLにアクセス
-#新年度で新たにスクレイピングをする際は、年度のカラムを追加した方が良い
-url = "https://syllabus.aoyama.ac.jp/Kensaku.aspx?__EVENTTARGET=&__EVENTARGUMENT=&__VIEWSTATEGENERATOR=309A73F1&YR=2024&BU=BU1&KW=&KM=&KI=&CP1=on&CP4=on&GB1B_0=&GKB=&DL=ja&ctl00%24CPH1%24btnKensaku=%E6%A4%9C%E7%B4%A2%2FSearch&ST=&PG=&PC=&PI="
+# 青山学院大学のシラバス検索ページにアクセス
+url = f"https://syllabus.aoyama.ac.jp/Kensaku.aspx?__EVENTTARGET=&__EVENTARGUMENT=&__VIEWSTATEGENERATOR=309A73F1&YR=2025&BU=BU1&KW=&KM=&KI=&CP1=on&CP4=on&GB1B_0=&GKB=&DL=ja&ctl00%24CPH1%24btnKensaku=%E6%A4%9C%E7%B4%A2%2FSearch&ST=&PG={start_page}&PC=&PI="
 driver.get(url)
 
 # データを保存するリスト
 data = []
-    
-    
+
 def scrape_page():
     # BeautifulSoupでHTMLを解析
     soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -80,28 +109,10 @@ def scrape_page():
     else:
         print('idがCPH1_gvw_kensakuのtableが見つかりません')
 
-
-   # MySQLにデータを挿入する関数
 def insert_data_to_db(data):
     connection = create_db_connection()
     try:
         with connection.cursor() as cursor:
-            # テーブルが存在しない場合は作成
-            create_table_query = """
-            CREATE TABLE IF NOT EXISTS aoyama_kougi (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                時限 VARCHAR(255),
-                科目 VARCHAR(255),
-                教員 VARCHAR(255),
-                単位 VARCHAR(255),
-                開講 VARCHAR(255),
-                学年 VARCHAR(255),
-                メッセージ TEXT,
-                url TEXT
-            );
-            """
-            cursor.execute(create_table_query)
-
             # データを挿入
             insert_query = """
             INSERT INTO aoyama_kougi (時限, 科目, 教員, 単位, 開講, 学年, メッセージ, url)
@@ -124,44 +135,70 @@ def insert_data_to_db(data):
     finally:
         connection.close()
 
+try:
+    # テーブルが表示されるまで待機
+    WebDriverWait(driver, 60).until(
+        EC.presence_of_element_located((By.ID, "CPH1_gvw_kensaku"))
+    )
+    print("データテーブルの読み込みを確認しました。")
+
+except TimeoutException:
+    print("エラー: タイムアウトしました。")
+    driver.quit()
+    exit()
+
+# 最初のページを処理
+print(f"{start_page}ページ目をスクレイピングしています...")
 scrape_page()
+print(f"{start_page}ページ目のデータをデータベースに登録しています...")
+insert_data_to_db(data)
+data = []
 
-i = 0
-
+# 次のページ以降の処理
+i = start_page
 while True:
-    # "次へ"ボタンが表示され、クリック可能になるのを待つ
     try:
+        # "次へ"ボタンが表示されるのを待ちます
         next_button = WebDriverWait(driver, 60).until(
             EC.element_to_be_clickable((By.ID, "CPH1_rptPagerT_lnkNext"))
         )
-
-        # JavaScriptを使ってクリック
         driver.execute_script("arguments[0].click();", next_button)
 
-        # ページの読み込みを待つ
-        WebDriverWait(driver, 60).until(
-            EC.staleness_of(next_button)
-        )
-        
-        # ページが完全にロードされるのを待つ
+        # ページが切り替わるのを待ちます
+        WebDriverWait(driver, 60).until(EC.staleness_of(next_button))
         WebDriverWait(driver, 60).until(
             EC.presence_of_element_located((By.ID, "CPH1_gvw_kensaku"))
         )
         
         time.sleep(3)
         i += 1
-        print(str(i)+" ok")
-        # スクレイピング
+        print(f"{i}ページ目をスクレイピングしています...")
+        
+        # 新しいページのデータを取得
         scrape_page()
 
+        # データベースへ登録
+        print(f"{i}ページ目のデータをデータベースに登録しています...")
+        insert_data_to_db(data)
+
+        # リストを空にする
+        data = []
+
     except TimeoutException:
-        print("次のページの読み込みに失敗しました。")
+        print("最後のページに到達しました。すべての処理が完了しました。")
+        break
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+        print(f"現在のページ: {i}")
         break
 
-
-
-# データベースにデータを挿入
-insert_data_to_db(data)
-
-# 終了
+# ブラウザを閉じる
 driver.quit()
+
+# 最終的なデータ件数を確認
+connection = create_db_connection()
+with connection.cursor() as cursor:
+    cursor.execute("SELECT COUNT(*) as count FROM aoyama_kougi")
+    final_count = cursor.fetchone()['count']
+    print(f"最終データ件数: {final_count}件")
+connection.close()
