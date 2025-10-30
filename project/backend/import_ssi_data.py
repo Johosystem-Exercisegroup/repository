@@ -4,7 +4,7 @@ import chardet
 from sqlalchemy import create_engine
 
 # ====== CSVファイルパス ======
-csv_path = r"C:\Users\Seita\tokuteikadai\class_data_ssi.csv"
+csv_path = r"C:\Users\{ユーザーの名前}\tokuteikadai\class_data_ssi.csv"
 
 # ====== 現在の状況を表示 ======
 print("📂 現在の作業ディレクトリ:", os.getcwd())
@@ -52,3 +52,4 @@ try:
     print("✅ MySQLに全行インポート完了: テーブル名 = class_data_ssi")
 except Exception as e:
     print("❌ MySQL書き込みエラー:", e)
+
