@@ -10,7 +10,8 @@ from crud import(
     get_matching_kougi_ids,insert_user_kougi,
     delete_user_kougi,calendar_list,get_user_kougi,
     create_calendar,update_calendar,delete_calendar,get_calendar,
-    update_user_def_calendar,insert_chat,get_kougi_summary
+    update_user_def_calendar,insert_chat,get_kougi_summary,
+    get_subject_categories
 )
 from models import User
 from schemas import User, UserCreate,SearchRequest,UserCalendarModel
@@ -379,6 +380,12 @@ async def get_departments():
 @app.get("/semesters")
 async def get_semesters():
     return {"semesters": SEMESTERS}
+
+# 授業区分リストの取得（社会情報学部）
+@app.get("/subject-categories")
+async def get_subject_categories_endpoint(db: Session = Depends(get_db)):
+    categories = get_subject_categories(db)
+    return {"subject_categories": ["指定なし"] + categories}
 
 def custom_openapi():
     if app.openapi_schema:
