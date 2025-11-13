@@ -66,3 +66,13 @@ class user_kougi(Base):
     __table_args__ = (
         PrimaryKeyConstraint('calendar_id','kougi_id','period'),      
     )
+
+class class_data_ssi(Base):
+    __tablename__ = "class_data_ssi"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    subject_category = Column(Text)
+    subject_name = Column(Text)
+    credit = Column(Integer)
+    grade_year = Column(Text)
+    note = Column(Text)
