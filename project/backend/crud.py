@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_,text,and_
-from models import User,aoyama_kougi,user_kougi,user_calendar,chat_log,aoyama_openai_emb
+from models import User,aoyama_kougi,user_kougi,user_calendar,chat_log,aoyama_openai_emb,class_data_ssi
 from schemas import UserCreate,UserCalendarModel
 from fastapi import HTTPException
 from datetime import datetime
@@ -62,6 +62,19 @@ def filter_course_ids(db, request):
     # 教員名条件
     if request.instructorName:
         query = query.filter(aoyama_kougi.教員.like(f"%{request.instructorName}%"))
+
+    # 授業区分条件（社会情報学部のclass_data_ssiテーブルを参照）
+    if request.subjectCategories and request.subjectCategories != ["指定なし"]:
+        # class_data_ssiから指定された授業区分に該当する科目名を取得
+        subject_names = db.query(class_data_ssi.subject_name).filter(
+            class_data_ssi.subject_category.in_(request.subjectCategories)
+        ).all()
+        subject_name_list = [name[0] for name in subject_names]
+        
+        if subject_name_list:
+            # 取得した科目名でaoyama_kougiをフィルタ
+            subject_conditions = [aoyama_kougi.科目.like(f"%{name}%") for name in subject_name_list]
+            query = query.filter(or_(*subject_conditions))
 
     # 結果からIDのみをリストで返す
     result = query.all()
@@ -306,3 +319,13 @@ def get_kougi_summary(id_list,db):
     results = query.all()
     results_dict = [row._asdict() for row in results]
     return results_dict
+
+def get_subject_categories(db: Session):
+    """
+    社会情報学部の授業区分一覧を取得する
+    
+    Returns:
+        list: ユニークな授業区分のリスト
+    """
+    categories = db.query(class_data_ssi.subject_category).distinct().all()
+    return [category[0] for category in categories if category[0]]

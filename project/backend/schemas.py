@@ -35,6 +35,7 @@ class SearchRequest(BaseModel):
     semesters: list[str] = []
     courseName: str = ""
     instructorName: str = ""
+    subjectCategories: list[str] = []
     
 class UserCalendarModel(BaseModel):
     id: Optional[int]
@@ -47,4 +48,4 @@ class UserCalendarModel(BaseModel):
     sixth_period_flag: bool = True
     
     class Config:
-        from_attributes = True 
+        from_attributes = True
