@@ -232,4 +232,3 @@ while True:
         break
 
 # ブラウザを閉じます
-driver.quit()

@@ -37,10 +37,25 @@ export const Search = () => {
     courseName: '',
     instructorName: '',
     campuses: [],
+    subjectCategories: [],
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [subjectCategories, setSubjectCategories] = useState([]);
+
+  // 授業区分リストの取得
+  useEffect(() => {
+    const fetchSubjectCategories = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/subject-categories`);
+        setSubjectCategories(response.data.subject_categories || []);
+      } catch (error) {
+        console.error("授業区分の取得に失敗:", error);
+      }
+    };
+    fetchSubjectCategories();
+  }, []);
 
   // 初期条件の設定
   useEffect(() => {
@@ -278,6 +293,25 @@ export const Search = () => {
             />
           ))}
         </Box>
+
+        {subjectCategories.length > 0 && (
+          <Box sx={{ marginBottom: '20px' }}>
+            <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>授業区分（社会情報学部）/ Subject Category</Typography>
+            {subjectCategories.map((category) => (
+              <FormControlLabel
+                key={category}
+                control={
+                  <Checkbox
+                    checked={searchCriteria.subjectCategories.includes(category)}
+                    onChange={() => handleCheckboxChange('subjectCategories', category)}
+                    sx={{ color: 'white' }}
+                  />
+                }
+                label={<Typography style={{ color: 'white' }}>{category}</Typography>}
+              />
+            ))}
+          </Box>
+        )}
 
         <Box sx={{
           display: 'flex',
