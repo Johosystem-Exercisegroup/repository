@@ -63,6 +63,19 @@ def filter_course_ids(db, request):
     if request.instructorName:
         query = query.filter(aoyama_kougi.教員.like(f"%{request.instructorName}%"))
    
+
+    # 授業形態条件（対面 / オンライン）
+    if request.deliveryModes and request.deliveryModes != ["指定なし"]:
+        delivery_conditions = []
+        for mode in request.deliveryModes:
+            if mode == "オンライン":
+                # 科目名に「オンライン」が含まれる場合
+                delivery_conditions.append(aoyama_kougi.科目.like("%オンライン%"))
+            elif mode == "対面":
+                # 科目名に「オンライン」が含まれない場合
+                delivery_conditions.append(~aoyama_kougi.科目.like("%オンライン%"))
+        query = query.filter(or_(*delivery_conditions))
+
     # 授業区分条件（社会情報学部のclass_data_ssiテーブルを参照）
     if request.subjectCategories and request.subjectCategories != ["指定なし"]:
         # class_data_ssiから指定された授業区分に該当する科目名を取得

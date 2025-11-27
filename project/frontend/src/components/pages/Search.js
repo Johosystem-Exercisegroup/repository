@@ -25,6 +25,9 @@ export const Search = () => {
   const DAYS = ["月", "火", "水", "木", "金", "土", "不定"];
   const PERIODS = ["１", "２", "３", "４", "５", "６"];
   
+
+  const DELIVERY_MODES = ["対面", "オンライン"];
+
   const navigate = useNavigate();
   const location = useLocation();
   const { defCalendarInfo } = useSetup(); // defCalendarInfoを取得
@@ -39,6 +42,7 @@ export const Search = () => {
     campuses: [],
     subjectCategories: [],
     
+    deliveryModes: [],
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -296,6 +300,26 @@ export const Search = () => {
         </Box>
         
         
+
+        <Box sx={{ marginBottom: '20px' }}>
+          <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>
+            授業形態 / Delivery Mode
+          </Typography>
+          {DELIVERY_MODES.map((mode) => (
+            <FormControlLabel
+              key={mode}
+              control={
+                <Checkbox
+                  checked={searchCriteria.deliveryModes.includes(mode)}
+                  onChange={() => handleCheckboxChange('deliveryModes', mode)}
+                  sx={{ color: 'white' }}
+                />
+              }
+              label={<Typography style={{ color: 'white' }}>{mode}</Typography>}
+            />
+          ))}
+        </Box>
+
         {subjectCategories.length > 0 && (
           <Box sx={{ marginBottom: '20px' }}>
             <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>授業区分（社会情報学部）/ Subject Category</Typography>
