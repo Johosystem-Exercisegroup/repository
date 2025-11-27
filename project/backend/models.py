@@ -22,6 +22,7 @@ class aoyama_kougi(Base):
     学年 = Column(String(255))
     メッセージ = Column(Text)
     url = Column(Text)
+    delivery_mode = Column(String(255))
     
 class chat_log(Base):
     __tablename__ = "chat_log"

@@ -36,6 +36,7 @@ class SearchRequest(BaseModel):
     courseName: str = ""
     instructorName: str = ""
     subjectCategories: list[str] = []
+    deliveryModes: list[str] = []
     
 class UserCalendarModel(BaseModel):
     id: Optional[int]
