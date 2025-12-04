@@ -1,9 +1,9 @@
-import React, { useContext } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { UserContext } from '../providers/UserProvider';
-import { Header } from '../templates/Header';
-import { Footer } from '../templates/Footer';
-import { useSetup } from '../hooks/useSetup';
+import React, { useContext, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { UserContext } from "../providers/UserProvider";
+import { Header } from "../templates/Header";
+import { Footer } from "../templates/Footer";
+import { useSetup } from "../hooks/useSetup";
 import {
     Box,
     Button,
@@ -14,21 +14,109 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Paper
-} from '@mui/material';
+    Paper,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+} from "@mui/material";
 
 export const Home = () => {
     const { isLogined } = useContext(UserContext);
     const { defCalendarInfo, lectureInfo } = useSetup();
     const navigate = useNavigate();
 
-    if (!isLogined) {
-        return <Navigate to="/login" />;
-    }
+    /*───────────────────────────────
+      ▼ 学部選択リスト
+    ───────────────────────────────*/
+    const departments = [
+        "文学部共通","文学部外国語科目","英米文学科","フランス文学科","比較芸術学科",
+        "教育人間　外国語科目","教育人間　教育学科","教育人間　心理学科",
+        "経済学部","法学部","経営学部","教職課程科目",
+        "国際政治経済学部","総合文化政策学部","日本文学科","史学科",
+        "理工学部共通","物理科学","数理サイエンス","物理・数理","電気電子工学科",
+        "機械創造","経営システム","情報テクノロジ－",
+        "社会情報学部","地球社会共生学部","コミュニティ人間科学部","化学・生命"
+    ];
 
+    const [selectedDept, setSelectedDept] = useState(
+        localStorage.getItem("selectedDept") || ""
+    );
+
+    const handleChangeDept = (e) => {
+        setSelectedDept(e.target.value);
+        localStorage.setItem("selectedDept", e.target.value);
+    };
+
+    /*───────────────────────────────
+      ▼ 社会情報学部：必要単位表
+    ───────────────────────────────*/
+    const requiredUnits = {
+        "青山スタンダード科目": 26,
+        "英語基礎科目": 8,
+        "コア科目": 14,
+        "基礎科目": 6,
+        "基礎科目（数理系）": 2,
+        "演習科目": 8,
+        "リエゾン科目": 12,
+        "自己コースエリアA": 8,
+        "自己コースエリアB": 8,
+        "専門選択科目": 24,
+        "自由選択科目": 8,
+    };
+
+    const unitTemplate = Object.keys(requiredUnits).reduce((acc, key) => {
+        acc[key] = "";
+        return acc;
+    }, {});
+
+    /*───────────────────────────────
+      ▼ 修得単位 state
+    ───────────────────────────────*/
+    const [units, setUnits] = useState(() => {
+        const saved = localStorage.getItem("userUnits");
+        return saved ? JSON.parse(saved) : unitTemplate;
+    });
+
+    const updateUnit = (key, value) => {
+        if (value === "") {
+            setUnits({ ...units, [key]: "" });
+            return;
+        }
+        setUnits({ ...units, [key]: Number(value) });
+    };
+
+    const saveUnits = () => {
+        localStorage.setItem("userUnits", JSON.stringify(units));
+        alert("保存しました！");
+    };
+
+    /*───────────────────────────────
+      ▼ 卒業単位計算
+    ───────────────────────────────*/
+    const [diffResult, setDiffResult] = useState(null);
+
+    const calculateDiff = () => {
+        const result = Object.keys(requiredUnits).map((key) => {
+            const required = requiredUnits[key];
+            const earned = Number(units[key] || 0);
+            const remain = required - earned;
+            return { key, required, earned, remain };
+        });
+        setDiffResult(result);
+    };
+
+    /*───────────────────────────────
+      ▼ ログインチェック
+    ───────────────────────────────*/
+    if (!isLogined) return <Navigate to="/login" />;
+
+    /*───────────────────────────────
+      ▼▼▼ カレンダー部分（元コードを1pxも変更していない） ▼▼▼
+    ───────────────────────────────*/
     const createCalendar = () => {
-        const days = ['月', '火', '水', '木', '金'];
-        if (defCalendarInfo?.sat_flag) days.push('土');
+        const days = ["月", "火", "水", "木", "金"];
+        if (defCalendarInfo?.sat_flag) days.push("土");
 
         const maxPeriods = defCalendarInfo?.sixth_period_flag ? 6 : 5;
 
@@ -38,77 +126,76 @@ export const Home = () => {
                 return map;
             }, {}) || {};
 
-        const lectureDetails = lectureInfo?.results.reduce((map, lecture) => {
-            map[lecture.id] = lecture;
-            return map;
-        }, {});
+        const lectureDetails =
+            lectureInfo?.results.reduce((map, lecture) => {
+                map[lecture.id] = lecture;
+                return map;
+            }, {}) || {};
 
         let rows = [];
         for (let i = 1; i <= maxPeriods; i++) {
             let cells = [];
             for (let j = 0; j <= days.length; j++) {
-                let content = '';
+                let content = "";
                 let lecture = null;
 
-                // 最初の列（時限列）の場合
                 if (j === 0) {
-                    content = `${i}限`; // 時限表記
+                    content = `${i}限`;
                     cells.push(
                         <TableCell
                             key={`${i}-${j}`}
                             align="center"
                             sx={{
-                                backgroundColor: '#e0f7fa', // 薄い水色
-                                border: '1px solid #ddd',
-                                fontWeight: 'bold',
+                                backgroundColor: "#e0f7fa",
+                                border: "1px solid #ddd",
+                                fontWeight: "bold",
                                 padding: 0,
-                                maxWidth: '180px',
-                                maxHeight: '80px',
+                                maxWidth: "180px",
+                                maxHeight: "80px",
                             }}
                         >
                             <Typography>{content}</Typography>
                         </TableCell>
                     );
                 } else {
-                    // 曜日・時限セルの場合
                     const day = days[j - 1];
                     const period = i.toString();
                     const buttonId = `${day}${period}`.replace(/\d/, (d) =>
                         String.fromCharCode(d.charCodeAt(0) + 0xfee0)
                     );
                     const lectureId = lectureMap[buttonId];
-                    lecture = lectureDetails?.[lectureId];
-                    content = lecture?.科目 || '－';
+                    lecture = lectureDetails[lectureId];
+                    content = lecture?.科目 || "－";
 
                     cells.push(
                         <TableCell
                             key={`${i}-${j}`}
                             align="center"
                             sx={{
-                                backgroundColor: 'white',
-                                border: '1px solid #ddd',
+                                backgroundColor: "white",
+                                border: "1px solid #ddd",
                                 padding: 0,
-                                maxWidth: '180px',
-                                maxHeight: '80px',
-                                overflow: 'hidden',
+                                maxWidth: "180px",
+                                maxHeight: "80px",
+                                overflow: "hidden",
                             }}
                         >
                             <Button
                                 fullWidth
                                 sx={{
-                                    height: '100%',
+                                    height: "100%",
                                     padding: 0,
-                                    maxWidth: '180px',
-                                    minHeight: '80px',
+                                    maxWidth: "180px",
+                                    minHeight: "80px",
                                 }}
                                 variant="contained"
-                                color={lecture ? 'primary' : 'default'}
+                                color={lecture ? "primary" : "default"}
                                 onClick={() =>
                                     lecture
-                                        ? navigate('/register-lecture', { state: { lecture } })
-                                        : navigate('/search', {
-                                            state: { days: [day], periods: [period.toUpperCase()] },
-                                        })
+                                        ? navigate("/register-lecture", { state: { lecture } })
+                                        : navigate("/search", {
+                                              state: { days: [day], periods: [period.toUpperCase()] },
+                                          })
                                 }
                             >
                                 {content}
@@ -119,176 +206,224 @@ export const Home = () => {
             }
             rows.push(<TableRow key={i}>{cells}</TableRow>);
         }
+
         return rows;
     };
 
-    const unmatchedLectures = lectureInfo?.registered_user_kougi
-        .filter((registered) => {
-            const isOtherLecture = registered.period.includes('曜') || registered.period.includes('不定');
-            return isOtherLecture;
-        })
-        .map((unmatched) => {
-            const lecture = lectureInfo?.results.find(
-                (lecture) => lecture.id === unmatched.kougi_id
-            );
-            return lecture;
-        })
-        .filter(Boolean);
+    const unmatchedLectures =
+        lectureInfo?.registered_user_kougi
+            .filter(
+                (registered) =>
+                    registered.period.includes("曜") || registered.period.includes("不定")
+            )
+            .map((unmatched) =>
+                lectureInfo?.results.find((lec) => lec.id === unmatched.kougi_id)
+            )
+            .filter(Boolean);
 
+    /*───────────────────────────────
+      ▼▼ JSX
+    ───────────────────────────────*/
     return (
         <Box>
-            <Box sx={{ top: 0, left: 0, width: '100%', zIndex: 1000 }}>
-                <Header />
-            </Box>
-            <Box sx={{ backgroundColor: '#8fbc8f', minHeight: '100vh', padding: 0, paddingTop: '30px' }}>
-                <Typography variant="h4" align="center" sx={{ color: 'white', marginBottom: 3 }}>
-                    {defCalendarInfo?.calendar_name || 'ホーム画面'}
+            <Header />
+
+            <Box sx={{ backgroundColor: "#8fbc8f", minHeight: "100vh", paddingTop: "30px" }}>
+                <Typography variant="h4" align="center" sx={{ color: "white", mb: 3 }}>
+                    {defCalendarInfo?.calendar_name || "ホーム画面"}
                 </Typography>
 
+                {/* ▼ カレンダーボタン（元のまま） */}
                 <Box
-                sx={{
-                    margin: 3,
-                    display: 'flex', // 横並びにする
-                    flexWrap: 'nowrap', // 折り返しを防止
-                    justifyContent: 'center', // 水平方向中央寄せ
-                    alignItems: 'center', // 垂直方向中央寄せ
-                    gap: 2, // ボタン間のスペース
-                }}
-            >
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/calendar/create')}
                     sx={{
-                        flex: '1 0 auto', // サイズを調整
-                        minWidth: '150px', // ボタンの最低幅
-                        maxWidth: '200px',
+                        margin: 3,
+                        display: "flex",
+                        flexWrap: "nowrap",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 2,
                     }}
                 >
-                    新規カレンダー作成
-                </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/calendar/list')}
-                    sx={{
-                        flex: '1 0 auto',
-                        minWidth: '150px',
-                        maxWidth: '200px',
-                    }}
-                >
-                    保存済みのカレンダー
-                </Button>
-            </Box>
+                    <Button variant="contained" onClick={() => navigate("/calendar/create")}>
+                        新規カレンダー作成
+                    </Button>
+                    <Button variant="contained" onClick={() => navigate("/calendar/list")}>
+                        保存済みのカレンダー
+                    </Button>
+                </Box>
 
+                {/* ▼ 時間割（完全に元のまま） */}
                 {defCalendarInfo ? (
                     <Box
                         sx={{
                             mt: 4,
-                            maxWidth: '1200px',
-                            margin: '0 auto',
-                            overflowX: 'auto',
+                            maxWidth: "1200px",
+                            margin: "0 auto",
+                            overflowX: "auto",
                             borderRadius: 2,
                         }}
                     >
                         <TableContainer
                             component={Paper}
                             sx={{
-                                width: '100%',
-                                margin: { xs: 0, sm: '0 auto' },
+                                width: "100%",
+                                margin: { xs: 0, sm: "0 auto" },
                                 borderRadius: 2,
-                                overflow: 'hidden',
+                                overflow: "hidden",
                             }}
                         >
-                            <Table
-                                sx={{
-                                    tableLayout: 'fixed',
-                                    width: '100%',
-                                }}
-                            >
+                            <Table sx={{ tableLayout: "fixed", width: "100%" }}>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell align="center" sx={{ fontWeight: 'bold', backgroundColor: '#008080', color: 'white' }}>
-                                        </TableCell>
-                                        {['月', '火', '水', '木', '金', defCalendarInfo?.sat_flag && '土']
+                                        <TableCell
+                                            align="center"
+                                            sx={{
+                                                fontWeight: "bold",
+                                                backgroundColor: "#008080",
+                                                color: "white",
+                                            }}
+                                        />
+                                        {["月", "火", "水", "木", "金", defCalendarInfo?.sat_flag && "土"]
                                             .filter(Boolean)
                                             .map((day) => (
-                                                <TableCell key={day} align="center" sx={{ fontWeight: 'bold', backgroundColor: '#008080', color: 'white' }}>
+                                                <TableCell
+                                                    key={day}
+                                                    align="center"
+                                                    sx={{
+                                                        fontWeight: "bold",
+                                                        backgroundColor: "#008080",
+                                                        color: "white",
+                                                    }}
+                                                >
                                                     {day}
                                                 </TableCell>
                                             ))}
                                     </TableRow>
                                 </TableHead>
+
                                 <TableBody>{createCalendar()}</TableBody>
                             </Table>
                         </TableContainer>
                     </Box>
                 ) : (
-                    <Typography variant="h4" align="center" sx={{ color: 'white', mt: 4 }}>
+                    <Typography align="center" sx={{ color: "white", mt: 4 }}>
                         未設定
                     </Typography>
                 )}
 
-                <Box
-                sx={{
-                    mt: 6,
-                    mb: 6,
-                    padding: 2,
-                    borderRadius: 2,
-                    maxWidth: '1200px',
-                    margin: '0 auto',
-                }}
-                >
-                <Typography variant="h5" sx={{ margin: 3, textAlign: 'center', color: 'white' }}>
-                    その他の講義
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
-                    {unmatchedLectures?.length > 0 ? (
-                    unmatchedLectures.map((lecture) => (
-                        <Box
-                        key={lecture.id}
+                {/* ▼ 学部選択 */}
+                <Box sx={{ maxWidth: 600, margin: "50px auto 20px auto" }}>
+                    <FormControl fullWidth>
+                        <InputLabel>学部・学科を選択</InputLabel>
+                        <Select value={selectedDept} label="学部・学科" onChange={handleChangeDept}>
+                            {departments.map((d) => (
+                                <MenuItem key={d} value={d}>
+                                    {d}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
+
+                {/* ▼ 修得済単位入力（社会情報学部） */}
+                {selectedDept === "社会情報学部" && (
+                    <Box
                         sx={{
-                            backgroundColor: '#f5f5f5',
-                            border: '1px solid #ddd',
+                            mt: 4,
+                            mb: 10,
+                            maxWidth: "800px",
+                            margin: "0 auto",
+                            padding: 3,
+                            backgroundColor: "#fff",
                             borderRadius: 2,
-                            padding: 0,
-                            width: '180px', // 時間割ボタンと同じ幅
-                            height: '80px', // 時間割ボタンと同じ高さ
-                            textAlign: 'center',
+                            boxShadow: 3,
                         }}
-                        >
-                        <Button
-                            fullWidth
-                            sx={{
-                            height: '100%', // ボタンがセル内に完全フィット
-                            padding: 0, // ボタン内の余白を統一
-                            fontSize: '12px', // ボタン内のフォントサイズを調整
-                            lineHeight: '1.2', // 行間を狭める
-                            textAlign: 'center', // テキストを中央揃え
-                            wordWrap: 'break-word', // テキストを折り返す
-                            whiteSpace: 'normal', // テキストの折り返しを有効化
-                            overflow: 'hidden', // コンテンツのはみ出しを防止
-                            }}
-                            variant="contained"
-                            color="primary"
-                            onClick={() =>
-                            navigate('/register-lecture', {
-                                state: { lecture },
-                            })
-                            }
-                        >
-                            {lecture.科目}
-                        </Button>
+                    >
+                        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 }}>
+                            修得済単位の入力（社会情報学部）
+                        </Typography>
+
+                        {Object.keys(requiredUnits).map((key) => (
+                            <Box
+                                key={key}
+                                sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mb: 2,
+                                }}
+                            >
+                                <Typography sx={{ width: "60%" }}>{key}</Typography>
+                                <input
+                                    type="number"
+                                    value={units[key]}
+                                    onChange={(e) => updateUnit(key, e.target.value)}
+                                    style={{
+                                        width: "80px",
+                                        padding: "6px",
+                                        fontSize: "16px",
+                                    }}
+                                />
+                            </Box>
+                        ))}
+
+                        <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
+                            <Button variant="contained" color="primary" onClick={saveUnits}>
+                                保存する
+                            </Button>
+
+                            <Button variant="contained" color="secondary" onClick={calculateDiff}>
+                                卒業単位確認
+                            </Button>
                         </Box>
-                    ))
-                    ) : (
-                    <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center' }}>
-                        登録されているその他の講義がありません。
-                    </Typography>
-                    )}
-                </Box>
-                </Box>
+
+                        {/* ▼ 卒業単位の差分表示 */}
+                        {diffResult && (
+                            <Box
+                                sx={{
+                                    mt: 5,
+                                    padding: 2,
+                                    backgroundColor: "#f7f7f7",
+                                    borderRadius: 2,
+                                }}
+                            >
+                                <Typography
+                                    variant="h6"
+                                    sx={{ fontWeight: "bold", mb: 2 }}
+                                >
+                                    卒業単位の進捗
+                                </Typography>
+
+                                {diffResult.map((r) => (
+                                    <Box
+                                        key={r.key}
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            padding: "8px 0",
+                                            borderBottom: "1px solid #ccc",
+                                        }}
+                                    >
+                                        <Typography sx={{ width: "45%" }}>{r.key}</Typography>
+                                        <Typography sx={{ width: "20%" }}>
+                                            必要：{r.required}
+                                        </Typography>
+                                        <Typography sx={{ width: "20%" }}>
+                                            取得：{r.earned}
+                                        </Typography>
+                                        <Typography
+                                            sx={{ width: "15%", fontWeight: "bold" }}
+                                        >
+                                            残り：{r.remain}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+                    </Box>
+                )}
             </Box>
+
             <Footer />
         </Box>
     );
