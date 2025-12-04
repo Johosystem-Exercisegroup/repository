@@ -48,6 +48,11 @@ export const RegisterLecture = () => {
     <Box sx={{ padding: 3 }}>
       <Paper sx={{ padding: 2, marginBottom: 2 }}>
         <Typography variant="h5">{lecture.科目}</Typography>
+        {lecture.touroku_no && (
+          <Typography variant="body1">
+            <strong>登録番号:</strong> {lecture.touroku_no}
+          </Typography>
+        )}
         <Typography variant="body1">
           <strong>時限:</strong> {lecture.時限}
         </Typography>
@@ -63,6 +68,11 @@ export const RegisterLecture = () => {
         <Typography variant="body1">
           <strong>単位:</strong> {lecture.単位}
         </Typography>
+        {lecture.subject_category && (
+          <Typography variant="body1">
+            <strong>授業区分:</strong> {lecture.subject_category}
+          </Typography>
+        )}
         <Typography variant="body1">
           <a href={lecture.url} target="_blank" rel="noopener noreferrer" >
             詳細を見る

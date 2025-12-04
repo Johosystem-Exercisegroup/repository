@@ -17,14 +17,20 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     )
 
 async def operational_error_handler(request: Request, exc: OperationalError):
+    import traceback
+    print(f"OperationalError: {exc}")
+    print(traceback.format_exc())
     return JSONResponse(
         status_code=500,
-        content={"detail": "Database operational error: an unexpected issue occurred."},
+        content={"detail": f"Database operational error: {str(exc)}"},
     )
 
 # 予期しない例外をキャッチ
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"Unhandled exception: {exc}")
+    print(traceback.format_exc())
     return JSONResponse(
         status_code=500,
-        content={"detail": "An unexpected error occurred."},
+        content={"detail": f"An unexpected error occurred: {str(exc)}"},
     )

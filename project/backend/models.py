@@ -14,6 +14,7 @@ class aoyama_kougi(Base):
     __tablename__ = "aoyama_kougi"  # テーブル名とクラス名を統一
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    touroku_no = Column(String(255))
     時限 = Column(String(255))
     科目 = Column(String(255))
     教員 = Column(String(255))
@@ -22,7 +23,7 @@ class aoyama_kougi(Base):
     学年 = Column(String(255))
     メッセージ = Column(Text)
     url = Column(Text)
-    
+    delivery_mode = Column(String(255))
 class chat_log(Base):
     __tablename__ = "chat_log"
     

@@ -15,6 +15,7 @@ class User(UserBase):
   
 class AoyamaKougiBase(BaseModel):
     id: int
+    touroku_no: Optional[str] = None
     時限: str
     科目: str
     教員: str
@@ -24,9 +25,11 @@ class AoyamaKougiBase(BaseModel):
     メッセージ: str
     url: str
     is_registered: bool
+    subject_category: Optional[str] = None
+   
     
     class Config:
-        from_attributes = True  
+        from_attributes = True
         
 class SearchRequest(BaseModel):
     campuses: list[str] = []
@@ -36,6 +39,7 @@ class SearchRequest(BaseModel):
     courseName: str = ""
     instructorName: str = ""
     subjectCategories: list[str] = []
+    
     
 class UserCalendarModel(BaseModel):
     id: Optional[int]

@@ -101,7 +101,9 @@ def scrape_page():
                 # クラス名に基づいてデータを抽出
                 for td in tds:
                     class_name = td.get('class', [])
-                    if 'col2' in class_name:
+                    if 'col1' in class_name:
+                        entry['touroku_no'] = td.text.strip()
+                    elif 'col2' in class_name:
                         entry['時限'] = td.text.strip()
                     elif 'col3' in class_name:
                         entry['科目'] = td.text.strip()
@@ -138,6 +140,7 @@ def insert_data_to_db(data):
             create_table_query = """
             CREATE TABLE IF NOT EXISTS aoyama_kougi (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                touroku_no VARCHAR(255),
                 時限 VARCHAR(255),
                 科目 VARCHAR(255),
                 教員 VARCHAR(255),
@@ -152,11 +155,12 @@ def insert_data_to_db(data):
 
             # データを挿入
             insert_query = """
-            INSERT INTO aoyama_kougi (時限, 科目, 教員, 単位, 開講, 学年, メッセージ, url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO aoyama_kougi (touroku_no, 時限, 科目, 教員, 単位, 開講, 学年, メッセージ, url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             for entry in data:
                 cursor.execute(insert_query, (
+                    entry.get('touroku_no'),
                     entry.get('時限'),
                     entry.get('科目'),
                     entry.get('教員'),

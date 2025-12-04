@@ -24,7 +24,7 @@ export const Search = () => {
 
   const DAYS = ["月", "火", "水", "木", "金", "土", "不定"];
   const PERIODS = ["１", "２", "３", "４", "５", "６"];
-
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { defCalendarInfo } = useSetup(); // defCalendarInfoを取得
@@ -38,6 +38,7 @@ export const Search = () => {
     instructorName: '',
     campuses: [],
     subjectCategories: [],
+    
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -293,7 +294,8 @@ export const Search = () => {
             />
           ))}
         </Box>
-
+        
+        
         {subjectCategories.length > 0 && (
           <Box sx={{ marginBottom: '20px' }}>
             <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>授業区分（社会情報学部）/ Subject Category</Typography>

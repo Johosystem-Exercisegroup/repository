@@ -62,7 +62,7 @@ def filter_course_ids(db, request):
     # 教員名条件
     if request.instructorName:
         query = query.filter(aoyama_kougi.教員.like(f"%{request.instructorName}%"))
-
+   
     # 授業区分条件（社会情報学部のclass_data_ssiテーブルを参照）
     if request.subjectCategories and request.subjectCategories != ["指定なし"]:
         # class_data_ssiから指定された授業区分に該当する科目名を取得
@@ -89,13 +89,21 @@ def read_db(db, id_list, calendar_id):
     query = db.query(aoyama_kougi).filter(aoyama_kougi.id.in_(id_list))
     result = query.all()
 
-    # 結果に `is_registered` を動的に追加
+    # 結果に `is_registered` と `subject_category` を動的に追加
     for kougi in result:
         is_registered = db.query(user_kougi).filter(
             user_kougi.kougi_id == kougi.id,
             user_kougi.calendar_id == calendar_id
         ).first() is not None
-        setattr(kougi, "is_registered", is_registered)  # 動的プロパティを追加
+        setattr(kougi, "is_registered", is_registered)
+        
+        # 授業区分を取得（class_data_ssiテーブルから科目名に基づいて検索）
+        subject_category_result = db.query(class_data_ssi.subject_category).filter(
+            class_data_ssi.subject_name == kougi.科目
+        ).first()
+        
+        subject_category = subject_category_result[0] if subject_category_result else None
+        setattr(kougi, "subject_category", subject_category)
 
     return result
 
