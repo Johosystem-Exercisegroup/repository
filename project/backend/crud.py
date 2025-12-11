@@ -63,6 +63,19 @@ def filter_course_ids(db, request):
     if request.instructorName:
         query = query.filter(aoyama_kougi.教員.like(f"%{request.instructorName}%"))
 
+    # 学年条件（1, 2, 3, 4）
+    if request.gradeYears and request.gradeYears != ["指定なし"]:
+        grade_conditions = []
+        for grade in request.gradeYears:
+            grade_conditions.append(aoyama_kougi.学年.like(f"%{grade}%"))
+            if grade == "２年":
+                grade_conditions.append(aoyama_kougi.学年.like("%{１～３}%"))
+                grade_conditions.append(aoyama_kougi.学年.like("%{１～４}%"))
+            if grade == "３年":
+                grade_conditions.append(aoyama_kougi.学年.like("%{２～４}%"))
+                grade_conditions.append(aoyama_kougi.学年.like("%{１～４}%"))
+        query = query.filter(or_(*grade_conditions))
+
     # 授業形態条件（対面 / オンライン）
     if request.deliveryModes and request.deliveryModes != ["指定なし"]:
         delivery_conditions = []
