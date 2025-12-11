@@ -40,6 +40,7 @@ class SearchRequest(BaseModel):
     instructorName: str = ""
     subjectCategories: list[str] = []
     deliveryModes: list[str] = []
+    gradeYears: list[str] = []
     
     
 class UserCalendarModel(BaseModel):
