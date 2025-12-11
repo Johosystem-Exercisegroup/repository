@@ -28,6 +28,8 @@ export const Search = () => {
 
   const DELIVERY_MODES = ["対面", "オンライン"];
 
+  const GRADES = ["１", "２", "３", "４"];
+
   const navigate = useNavigate();
   const location = useLocation();
   const { defCalendarInfo } = useSetup(); // defCalendarInfoを取得
@@ -43,6 +45,7 @@ export const Search = () => {
     subjectCategories: [],
     
     deliveryModes: [],
+    gradeYears: [],
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -261,6 +264,25 @@ export const Search = () => {
                 />
               }
               label={<Typography style={{ color: 'white' }}>{period}</Typography>}
+            />
+          ))}
+        </Box>
+
+        <Box sx={{ marginBottom: '20px' }}>
+          <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>
+            学年 / Grade
+          </Typography>
+          {GRADES.map((grade) => (
+            <FormControlLabel
+              key={grade}
+              control={
+                <Checkbox
+                  checked={searchCriteria.gradeYears.includes(grade)}
+                  onChange={() => handleCheckboxChange('gradeYears', grade)}
+                  sx={{ color: 'white' }}
+                />
+              }
+              label={<Typography style={{ color: 'white' }}>{grade}年</Typography>}
             />
           ))}
         </Box>
