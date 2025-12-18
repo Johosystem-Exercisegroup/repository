@@ -323,7 +323,6 @@ export const Search = () => {
           <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>
             授業形態 / Delivery Mode
           </Typography>
-          <Typography variant="h6" style={{ color: 'white', marginBottom: '10px' }}>授業形態 / Delivery Mode</Typography>
           {DELIVERY_MODES.map((mode) => (
             <FormControlLabel
               key={mode}
