@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useMemo } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { UserContext } from "../providers/UserProvider";
 import { Header } from "../templates/Header";
@@ -19,7 +19,15 @@ import {
     InputLabel,
     Select,
     MenuItem,
+    TextField,
+    LinearProgress,
+    Card,
+    CardContent,
+    Divider,
+    Grid,
+    Chip,
 } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 export const Home = () => {
     const { isLogined } = useContext(UserContext);
@@ -30,13 +38,13 @@ export const Home = () => {
       ▼ 学部選択リスト
     ───────────────────────────────*/
     const departments = [
-        "文学部共通","文学部外国語科目","英米文学科","フランス文学科","比較芸術学科",
-        "教育人間　外国語科目","教育人間　教育学科","教育人間　心理学科",
-        "経済学部","法学部","経営学部","教職課程科目",
-        "国際政治経済学部","総合文化政策学部","日本文学科","史学科",
-        "理工学部共通","物理科学","数理サイエンス","物理・数理","電気電子工学科",
-        "機械創造","経営システム","情報テクノロジ－",
-        "社会情報学部","地球社会共生学部","コミュニティ人間科学部","化学・生命"
+        "文学部共通", "文学部外国語科目", "英米文学科", "フランス文学科", "比較芸術学科",
+        "教育人間　外国語科目", "教育人間　教育学科", "教育人間　心理学科",
+        "経済学部", "法学部", "経営学部", "教職課程科目",
+        "国際政治経済学部", "総合文化政策学部", "日本文学科", "史学科",
+        "理工学部共通", "物理科学", "数理サイエンス", "物理・数理", "電気電子工学科",
+        "機械創造", "経営システム", "情報テクノロジ－",
+        "社会情報学部", "地球社会共生学部", "コミュニティ人間科学部", "化学・生命"
     ];
 
     const [selectedDept, setSelectedDept] = useState(
@@ -79,6 +87,7 @@ export const Home = () => {
     });
 
     const updateUnit = (key, value) => {
+        // 0未満の入力は防ぐなどの制御も可能ですが、ここではシンプルに
         if (value === "") {
             setUnits({ ...units, [key]: "" });
             return;
@@ -92,19 +101,32 @@ export const Home = () => {
     };
 
     /*───────────────────────────────
-      ▼ 卒業単位計算
+      ▼ リアルタイム計算ロジック（改善点）
     ───────────────────────────────*/
-    const [diffResult, setDiffResult] = useState(null);
+    // 入力値が変わるたびに自動で計算結果を生成します
+    const progressData = useMemo(() => {
+        if (selectedDept !== "社会情報学部") return null;
 
-    const calculateDiff = () => {
-        const result = Object.keys(requiredUnits).map((key) => {
+        let totalRequired = 0;
+        let totalEarned = 0;
+
+        const details = Object.keys(requiredUnits).map((key) => {
             const required = requiredUnits[key];
             const earned = Number(units[key] || 0);
-            const remain = required - earned;
-            return { key, required, earned, remain };
+            const remain = Math.max(0, required - earned);
+            const progress = Math.min(100, (earned / required) * 100);
+            const isComplete = earned >= required;
+
+            totalRequired += required;
+            totalEarned += earned;
+
+            return { key, required, earned, remain, progress, isComplete };
         });
-        setDiffResult(result);
-    };
+
+        const totalProgress = Math.min(100, (totalEarned / totalRequired) * 100);
+
+        return { details, totalRequired, totalEarned, totalProgress };
+    }, [units, selectedDept]); // requiredUnitsは定数なので依存配列から除外
 
     /*───────────────────────────────
       ▼ ログインチェック
@@ -112,7 +134,7 @@ export const Home = () => {
     if (!isLogined) return <Navigate to="/login" />;
 
     /*───────────────────────────────
-      ▼▼▼ カレンダー部分（元コードを1pxも変更していない） ▼▼▼
+      ▼▼▼ カレンダー部分（変更なし） ▼▼▼
     ───────────────────────────────*/
     const createCalendar = () => {
         const days = ["月", "火", "水", "木", "金"];
@@ -194,8 +216,8 @@ export const Home = () => {
                                     lecture
                                         ? navigate("/register-lecture", { state: { lecture } })
                                         : navigate("/search", {
-                                              state: { days: [day], periods: [period.toUpperCase()] },
-                                          })
+                                            state: { days: [day], periods: [period.toUpperCase()] },
+                                        })
                                 }
                             >
                                 {content}
@@ -210,17 +232,6 @@ export const Home = () => {
         return rows;
     };
 
-    const unmatchedLectures =
-        lectureInfo?.registered_user_kougi
-            .filter(
-                (registered) =>
-                    registered.period.includes("曜") || registered.period.includes("不定")
-            )
-            .map((unmatched) =>
-                lectureInfo?.results.find((lec) => lec.id === unmatched.kougi_id)
-            )
-            .filter(Boolean);
-
     /*───────────────────────────────
       ▼▼ JSX
     ───────────────────────────────*/
@@ -228,12 +239,12 @@ export const Home = () => {
         <Box>
             <Header />
 
-            <Box sx={{ backgroundColor: "#8fbc8f", minHeight: "100vh", paddingTop: "30px" }}>
+            <Box sx={{ backgroundColor: "#8fbc8f", minHeight: "100vh", paddingTop: "30px", pb: 10 }}>
                 <Typography variant="h4" align="center" sx={{ color: "white", mb: 3 }}>
                     {defCalendarInfo?.calendar_name || "ホーム画面"}
                 </Typography>
 
-                {/* ▼ カレンダーボタン（元のまま） */}
+                {/* ▼ カレンダーボタン */}
                 <Box
                     sx={{
                         margin: 3,
@@ -252,7 +263,7 @@ export const Home = () => {
                     </Button>
                 </Box>
 
-                {/* ▼ 時間割（完全に元のまま） */}
+                {/* ▼ 時間割 */}
                 {defCalendarInfo ? (
                     <Box
                         sx={{
@@ -312,117 +323,139 @@ export const Home = () => {
                 )}
 
                 {/* ▼ 学部選択 */}
-                <Box sx={{ maxWidth: 600, margin: "50px auto 20px auto" }}>
-                    <FormControl fullWidth>
-                        <InputLabel>学部・学科を選択</InputLabel>
-                        <Select value={selectedDept} label="学部・学科" onChange={handleChangeDept}>
-                            {departments.map((d) => (
-                                <MenuItem key={d} value={d}>
-                                    {d}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                <Box sx={{ maxWidth: 600, margin: "50px auto 20px auto", px: 2 }}>
+                    <Card sx={{ p: 2, borderRadius: 2 }}>
+                        <FormControl fullWidth>
+                            <InputLabel>学部・学科を選択して単位を確認</InputLabel>
+                            <Select value={selectedDept} label="学部・学科を選択して単位を確認" onChange={handleChangeDept}>
+                                {departments.map((d) => (
+                                    <MenuItem key={d} value={d}>
+                                        {d}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Card>
                 </Box>
 
-                {/* ▼ 修得済単位入力（社会情報学部） */}
-                {selectedDept === "社会情報学部" && (
-                    <Box
-                        sx={{
-                            mt: 4,
-                            mb: 10,
-                            maxWidth: "800px",
-                            margin: "0 auto",
-                            padding: 3,
-                            backgroundColor: "#fff",
-                            borderRadius: 2,
-                            boxShadow: 3,
-                        }}
-                    >
-                        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 }}>
-                            修得済単位の入力（社会情報学部）
-                        </Typography>
+                {/* ▼ 修得済単位入力＆計算（大幅リニューアル） */}
+                {selectedDept === "社会情報学部" && progressData && (
+                    <Box sx={{ maxWidth: "900px", margin: "0 auto", px: 2 }}>
+                        <Card sx={{ borderRadius: 3, boxShadow: 4 }}>
+                            <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+                                
+                                {/* 1. タイトルと保存ボタン */}
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                                    <Typography variant="h5" sx={{ fontWeight: "bold", color: "#333" }}>
+                                        卒業単位チェッカー
+                                    </Typography>
+                                    <Button variant="contained" size="large" onClick={saveUnits} color="primary">
+                                        情報を保存
+                                    </Button>
+                                </Box>
 
-                        {Object.keys(requiredUnits).map((key) => (
-                            <Box
-                                key={key}
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mb: 2,
-                                }}
-                            >
-                                <Typography sx={{ width: "60%" }}>{key}</Typography>
-                                <input
-                                    type="number"
-                                    value={units[key]}
-                                    onChange={(e) => updateUnit(key, e.target.value)}
-                                    style={{
-                                        width: "80px",
-                                        padding: "6px",
-                                        fontSize: "16px",
-                                    }}
-                                />
-                            </Box>
-                        ))}
-
-                        <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
-                            <Button variant="contained" color="primary" onClick={saveUnits}>
-                                保存する
-                            </Button>
-
-                            <Button variant="contained" color="secondary" onClick={calculateDiff}>
-                                卒業単位確認
-                            </Button>
-                        </Box>
-
-                        {/* ▼ 卒業単位の差分表示 */}
-                        {diffResult && (
-                            <Box
-                                sx={{
-                                    mt: 5,
-                                    padding: 2,
-                                    backgroundColor: "#f7f7f7",
-                                    borderRadius: 2,
-                                }}
-                            >
-                                <Typography
-                                    variant="h6"
-                                    sx={{ fontWeight: "bold", mb: 2 }}
-                                >
-                                    卒業単位の進捗
-                                </Typography>
-
-                                {diffResult.map((r) => (
-                                    <Box
-                                        key={r.key}
-                                        sx={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            padding: "8px 0",
-                                            borderBottom: "1px solid #ccc",
-                                        }}
-                                    >
-                                        <Typography sx={{ width: "45%" }}>{r.key}</Typography>
-                                        <Typography sx={{ width: "20%" }}>
-                                            必要：{r.required}
-                                        </Typography>
-                                        <Typography sx={{ width: "20%" }}>
-                                            取得：{r.earned}
-                                        </Typography>
-                                        <Typography
-                                            sx={{ width: "15%", fontWeight: "bold" }}
-                                        >
-                                            残り：{r.remain}
+                                {/* 2. 全体の進捗サマリー */}
+                                <Paper variant="outlined" sx={{ p: 2, mb: 4, backgroundColor: "#f9f9f9", borderColor: "#ddd" }}>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                                        <Typography variant="subtitle1" fontWeight="bold">総合進捗</Typography>
+                                        <Typography variant="subtitle1" fontWeight="bold">
+                                            {progressData.totalEarned} / {progressData.totalRequired} 単位
                                         </Typography>
                                     </Box>
-                                ))}
-                            </Box>
-                        )}
+                                    <LinearProgress 
+                                        variant="determinate" 
+                                        value={progressData.totalProgress} 
+                                        sx={{ height: 10, borderRadius: 5 }} 
+                                    />
+                                    <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: "block", textAlign: "right" }}>
+                                        卒業まであと {Math.max(0, progressData.totalRequired - progressData.totalEarned)} 単位
+                                    </Typography>
+                                </Paper>
+
+                                <Divider sx={{ mb: 4 }} />
+
+                                {/* 3. カテゴリごとの入力リスト */}
+                                <Grid container spacing={3}>
+                                    {progressData.details.map((item) => (
+                                        <Grid item xs={12} key={item.key}>
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    alignItems: "flex-start",
+                                                    justifyContent: "space-between",
+                                                    flexDirection: { xs: "column", sm: "row" },
+                                                    gap: 2
+                                                }}
+                                            >
+                                                {/* 科目名 */}
+                                                <Box sx={{ flex: 1, minWidth: "150px", pt: 1 }}>
+                                                    <Typography variant="body1" fontWeight="bold">
+                                                        {item.key}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="textSecondary">
+                                                        必要単位: {item.required}
+                                                    </Typography>
+                                                </Box>
+
+                                                {/* 入力欄 */}
+                                                <Box sx={{ width: { xs: "100%", sm: "120px" } }}>
+                                                    <TextField
+                                                        type="number"
+                                                        label="取得"
+                                                        value={units[item.key]}
+                                                        onChange={(e) => updateUnit(item.key, e.target.value)}
+                                                        variant="outlined"
+                                                        size="small"
+                                                        fullWidth
+                                                        InputProps={{ inputProps: { min: 0 } }}
+                                                    />
+                                                </Box>
+
+                                                {/* 進捗バーと残り単位 */}
+                                                <Box sx={{ flex: 2, width: "100%", pt: 1 }}>
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                                                        <Box sx={{ width: "100%", mr: 1 }}>
+                                                            <LinearProgress 
+                                                                variant="determinate" 
+                                                                value={item.progress} 
+                                                                color={item.isComplete ? "success" : "primary"}
+                                                                sx={{ height: 8, borderRadius: 4 }}
+                                                            />
+                                                        </Box>
+                                                        <Box sx={{ minWidth: 35 }}>
+                                                            {item.isComplete ? (
+                                                                <CheckCircleIcon color="success" />
+                                                            ) : (
+                                                                <Typography variant="body2" color="textSecondary">{`${Math.round(item.progress)}%`}</Typography>
+                                                            )}
+                                                        </Box>
+                                                    </Box>
+                                                    <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                                                        {item.isComplete ? (
+                                                            <Chip label="完了" size="small" color="success" variant="outlined" />
+                                                        ) : (
+                                                            <Typography variant="caption" sx={{ color: "error.main", fontWeight: "bold" }}>
+                                                                あと {item.remain} 単位
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                            <Divider sx={{ mt: 2, display: { xs: "block", sm: "none" } }} />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                            </CardContent>
+                        </Card>
                     </Box>
                 )}
             </Box>
+
+            <Footer />
+        </Box>
+    );
+};
 
             <Footer />
         </Box>
