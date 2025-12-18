@@ -62,6 +62,18 @@ def filter_course_ids(db, request):
     # 教員名条件
     if request.instructorName:
         query = query.filter(aoyama_kougi.教員.like(f"%{request.instructorName}%"))
+    
+    # 授業形態条件（対面 / オンライン ）
+    if request.deliveryModes and request.deliveryModes != ["指定なし"]:
+        delivery_conditions = []
+        for mode in request.deliveryModes:
+            if mode == "オンライン":
+                # 科目名に「オンライン」が含まれる場合
+                delivery_conditions.append(aoyama_kougi.科目.like("%オンライン%"))
+            elif mode == "対面":
+                # 科目名に「オンライン」が含まれない場合
+                delivery_conditions.append(~aoyama_kougi.科目.like("%オンライン%"))
+        query = query.filter(or_(*delivery_conditions))
 
     # 学年条件（1, 2, 3, 4）
     if request.gradeYears and request.gradeYears != ["指定なし"]:
